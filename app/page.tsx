@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import LoginPage from "@/components/LoginPage";
 import ConfiguratorPage from "@/components/ConfiguratorPage";
