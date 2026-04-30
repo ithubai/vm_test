@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import LoginPage from "@/components/LoginPage";
 import ConfiguratorPage from "@/components/ConfiguratorPage";
@@ -11,7 +13,11 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const { data, ready, saveUsers, savePriceLists, resetToDefaults } = useAppData();
 
-  if (!ready) return null;
+  if (!ready) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-slate-500 text-sm">Caricamento...</div>
+    </div>
+  );
 
   if (!user) {
     return <LoginPage users={data.users} onLogin={setUser} />;
