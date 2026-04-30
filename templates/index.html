@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estrattore Ordini PDF</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1f4e79;
+    }
+    header p {
+      color: #718096;
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .drop-zone {
+      border: 2px dashed #a0aec0;
+      border-radius: 10px;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: #1f4e79;
+      background: #ebf4ff;
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .drop-zone .label { font-size: 1rem; color: #4a5568; }
+    .drop-zone .sub { font-size: 0.8rem; color: #a0aec0; margin-top: 0.3rem; }
+    .drop-zone.has-file { border-color: #2b6cb0; background: #ebf4ff; }
+    .drop-zone.has-file .label { color: #2b6cb0; font-weight: 600; }
+
+    details { margin-top: 1.2rem; }
+    summary {
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #4a5568;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    summary::before { content: "\25B6"; font-size: 0.7rem; transition: transform 0.2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+
+    .hints-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 520px) { .hints-grid { grid-template-columns: 1fr; } }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 0.3rem;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      color: #2d3748;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: #1f4e79;
+      box-shadow: 0 0 0 3px rgba(31,78,121,0.1);
+    }
+
+    .model-row {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .model-row label { margin: 0; white-space: nowrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.6rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: #1f4e79;
+      color: #fff;
+      width: 100%;
+      justify-content: center;
+      margin-top: 1.4rem;
+    }
+    .btn-primary:hover { background: #17406a; }
+    .btn-primary:disabled { background: #a0aec0; cursor: not-allowed; }
+    .btn-download { background: #276749; color: #fff; }
+    .btn-download:hover { background: #1e5238; }
+
+    .spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert-error {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      color: #c53030;
+      border-radius: 8px;
+      padding: 0.9rem 1.2rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    #results { display: none; }
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .results-header h2 { font-size: 1.1rem; color: #1f4e79; }
+    .badge {
+      background: #ebf4ff;
+      color: #2b6cb0;
+      padding: 0.2rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    thead th {
+      background: #1f4e79;
+      color: #fff;
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    tbody tr:nth-child(even) { background: #d6e4f0; }
+    tbody tr:hover { background: #bee3f8; }
+    tbody td { padding: 0.5rem 0.9rem; border-bottom: 1px solid #e2e8f0; }
+    td.num { text-align: right; }
+    .more-rows {
+      text-align: center;
+      padding: 0.5rem;
+      color: #718096;
+      font-size: 0.82rem;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>&#128196; Estrattore Ordini PDF</h1>
+      <p>Carica un PDF con un ordine cliente e ottieni i dati in Excel</p>
+    </header>
+
+    <div class="card">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="pdfInput" accept=".pdf" />
+        <div class="icon">&#128194;</div>
+        <div class="label" id="dropLabel">Trascina il PDF qui oppure clicca per scegliere</div>
+        <div class="sub">Massimo 20 MB</div>
+      </div>
+
+      <details id="hintsDetails">
+        <summary>Suggerimenti righe d'esempio (opzionale)</summary>
+        <div class="hints-grid">
+          <div>
+            <label for="riga1">Riga 1 d'esempio</label>
+            <input type="text" id="riga1" placeholder="es. ART-001, Vite M6x20, 500, PZ" />
+          </div>
+          <div>
+            <label for="riga2">Riga 2 d'esempio</label>
+            <input type="text" id="riga2" placeholder="es. ART-002, Dado M6, 1000, PZ" />
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Impostazioni modello</summary>
+        <div class="model-row">
+          <label for="modello">Modello Claude</label>
+          <select id="modello">
+            <option value="claude-opus-4-7" selected>claude-opus-4-7 (consigliato)</option>
+            <option value="claude-sonnet-4-6">claude-sonnet-4-6 (pi&#249; veloce)</option>
+            <option value="claude-haiku-4-5">claude-haiku-4-5 (economico)</option>
+          </select>
+        </div>
+      </details>
+
+      <button class="btn btn-primary" id="submitBtn" disabled>
+        <span class="spinner" id="spinner"></span>
+        <span id="btnText">Seleziona un PDF per iniziare</span>
+      </button>
+    </div>
+
+    <div class="alert-error" id="errorBox"></div>
+
+    <div class="card" id="results">
+      <div class="results-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <h2>Righe estratte</h2>
+          <span class="badge" id="totaleBadge"></span>
+        </div>
+        <button class="btn btn-download" id="downloadBtn">&#11015; Scarica Excel</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Codice Articolo</th>
+              <th>Descrizione</th>
+              <th>Quantit&#224;</th>
+              <th>Unit&#224; di Misura</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone    = document.getElementById("dropZone");
+    const pdfInput    = document.getElementById("pdfInput");
+    const dropLabel   = document.getElementById("dropLabel");
+    const submitBtn   = document.getElementById("submitBtn");
+    const btnText     = document.getElementById("btnText");
+    const spinner     = document.getElementById("spinner");
+    const errorBox    = document.getElementById("errorBox");
+    const results     = document.getElementById("results");
+    const tableBody   = document.getElementById("tableBody");
+    const totaleBadge = document.getElementById("totaleBadge");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    let currentDownloadId = null;
+
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("over"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("over"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("over");
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(file);
+    });
+
+    pdfInput.addEventListener("change", () => {
+      if (pdfInput.files[0]) setFile(pdfInput.files[0]);
+    });
+
+    function setFile(file) {
+      dropLabel.textContent = "📄 " + file.name;
+      dropZone.classList.add("has-file");
+      submitBtn.disabled = false;
+      btnText.textContent = "Estrai dati";
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      pdfInput.files = dt.files;
+    }
+
+    submitBtn.addEventListener("click", async () => {
+      const file = pdfInput.files[0];
+      if (!file) return;
+
+      submitBtn.disabled = true;
+      spinner.style.display = "inline-block";
+      btnText.textContent = "Estrazione in corso…";
+      errorBox.style.display = "none";
+      results.style.display = "none";
+      currentDownloadId = null;
+
+      const formData = new FormData();
+      formData.append("pdf", file);
+      formData.append("riga1", document.getElementById("riga1").value);
+      formData.append("riga2", document.getElementById("riga2").value);
+      formData.append("modello", document.getElementById("modello").value);
+
+      try {
+        const resp = await fetch("/estrai", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (!resp.ok || data.errore) {
+          showError(data.errore || "Errore sconosciuto.");
+        } else {
+          showResults(data);
+        }
+      } catch (err) {
+        showError("Errore di rete: " + err.message);
+      } finally {
+        spinner.style.display = "none";
+        submitBtn.disabled = false;
+        btnText.textContent = "Estrai dati";
+      }
+    });
+
+    function showError(msg) {
+      errorBox.textContent = "⚠ " + msg;
+      errorBox.style.display = "block";
+    }
+
+    function showResults(data) {
+      currentDownloadId = data.download_id;
+      totaleBadge.textContent = data.totale + " righe";
+      tableBody.innerHTML = "";
+      const preview = data.righe.slice(0, 50);
+      preview.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + esc(r.codice_articolo) + "</td>" +
+          "<td>" + esc(r.descrizione || "") + "</td>" +
+          "<td class='num'>" + (r.quantita ?? "") + "</td>" +
+          "<td>" + esc(r.unita_misura || "") + "</td>";
+        tableBody.appendChild(tr);
+      });
+      if (data.totale > 50) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = "<td colspan='4' class='more-rows'>… e altre " + (data.totale - 50) + " righe (visibili nell'Excel)</td>";
+        tableBody.appendChild(tr);
+      }
+      results.style.display = "block";
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    downloadBtn.addEventListener("click", () => {
+      if (currentDownloadId) window.location = "/download/" + currentDownloadId;
+    });
+
+    function esc(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+  </script>
+</body>
+</html>
