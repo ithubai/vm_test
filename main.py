@@ -8,8 +8,8 @@ Utilizzo
 python main.py ordine.pdf
 
 # Con suggerimento sulle prime 2 righe per guidare l'estrazione
-python main.py ordine.pdf \\
-    --riga1 "ART-001, Vite M6x20, 500, PZ" \\
+python main.py ordine.pdf \
+    --riga1 "ART-001, Vite M6x20, 500, PZ" \
     --riga2 "ART-002, Dado M6, 1000, PZ"
 
 # Output personalizzato
