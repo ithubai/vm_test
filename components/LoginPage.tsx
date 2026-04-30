@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { authenticate } from "@/lib/auth";
 import { User } from "@/types";
 
-export default function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
+type Props = { users: User[]; onLogin: (user: User) => void };
+
+export default function LoginPage({ users, onLogin }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const user = authenticate(username.trim().toLowerCase(), password);
+    const user = users.find((u) => u.username === username.trim().toLowerCase() && u.password === password);
     if (user) {
       setError("");
       onLogin(user);
@@ -35,9 +36,7 @@ export default function LoginPage({ onLogin }: { onLogin: (user: User) => void }
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
             <input
               type="text"
               value={username}
@@ -49,9 +48,7 @@ export default function LoginPage({ onLogin }: { onLogin: (user: User) => void }
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
             <input
               type="password"
               value={password}

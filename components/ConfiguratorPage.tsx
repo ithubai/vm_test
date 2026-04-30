@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { User, OrderLine } from "@/types";
-import { getPriceList } from "@/data/pricelists";
-import { calcOrderLine, formatTierLabel, getMarkupTier, euroFormat } from "@/lib/pricing";
+import { User, OrderLine, PriceList } from "@/types";
+import { calcOrderLine, formatTierLabel, getMarkupTierFromList, euroFormat } from "@/lib/pricing";
 import OrderSummary from "@/components/OrderSummary";
 
 function generateId() {
@@ -15,10 +14,9 @@ function countryFlag(country: string) {
   return flags[country] ?? country;
 }
 
-type Props = { user: User; onLogout: () => void };
+type Props = { user: User; priceList: PriceList; onLogout: () => void };
 
-export default function ConfiguratorPage({ user, onLogout }: Props) {
-  const priceList = getPriceList(user.country)!;
+export default function ConfiguratorPage({ user, priceList, onLogout }: Props) {;
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [showSummary, setShowSummary] = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
@@ -37,7 +35,7 @@ export default function ConfiguratorPage({ user, onLogout }: Props) {
   function addLine() {
     const first = priceList.products[0];
     const id = generateId();
-    setLines((prev) => [...prev, calcOrderLine(first, 1, user.country, id)]);
+    setLines((prev) => [...prev, calcOrderLine(first, 1, priceList, id)]);
   }
 
   function removeLine(id: string) {
@@ -49,7 +47,7 @@ export default function ConfiguratorPage({ user, onLogout }: Props) {
     if (!product) return;
     setLines((prev) =>
       prev.map((l) =>
-        l.id === id ? calcOrderLine(product, l.quantity, user.country, id) : l
+        l.id === id ? calcOrderLine(product, l.quantity, priceList, id) : l
       )
     );
     flash(id);
@@ -59,7 +57,7 @@ export default function ConfiguratorPage({ user, onLogout }: Props) {
     const safeQty = Math.max(1, isNaN(qty) ? 1 : qty);
     setLines((prev) =>
       prev.map((l) =>
-        l.id === id ? calcOrderLine(l.product, safeQty, user.country, id) : l
+        l.id === id ? calcOrderLine(l.product, safeQty, priceList, id) : l
       )
     );
     flash(id);
@@ -182,7 +180,7 @@ export default function ConfiguratorPage({ user, onLogout }: Props) {
                 </thead>
                 <tbody>
                   {lines.map((line, idx) => {
-                    const tier = getMarkupTier(user.country, line.quantity);
+                    const tier = getMarkupTierFromList(priceList, line.quantity);
                     const isFlashing = highlightedIds.has(line.id);
                     return (
                       <tr

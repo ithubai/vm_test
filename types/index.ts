@@ -1,10 +1,13 @@
 export type Country = "IT" | "FR" | "DE";
 
+export type UserRole = "user" | "admin";
+
 export type User = {
   username: string;
   password: string;
   country: Country;
   fullName: string;
+  role: UserRole;
 };
 
 export type Product = {
@@ -40,4 +43,9 @@ export type Order = {
   lines: OrderLine[];
   total: number;
   date: string;
+};
+
+export type AppData = {
+  users: User[];
+  priceLists: PriceList[];
 };
